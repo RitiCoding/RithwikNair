@@ -89,9 +89,9 @@ export const work = {
     {
       no: "01",
       team: "FRC 2583 · Orange Dynamite",
-      role: "Student Ambassador",
+      role: "Director and Design Lead",
       years: "FIRST Robotics Competition",
-      body: "A 125-pound robot on a six-week build season. I represent 2583 as a Student Ambassador and work on the robot through the season.",
+      body: "A 125-pound robot on a six-week build season. I represent 2583 as the Technical Director and work on the robot through the season.",
       highlights: [
         "Winner - 2026 FIT District McAllen Event",
         "Impact Award Winner - 2026 FIT District Manor Event",
@@ -104,7 +104,7 @@ export const work = {
     {
       no: "02",
       team: "FTC 24133 · CHAI GPT Robotics",
-      role: "Build & autonomy",
+      role: "Captain and Design Lead",
       years: "FIRST Tech Challenge",
       body: "A smaller team, so I worked across build, CAD, and autonomous. CHAI GPT won the Inspire Award, the top award in FTC, at both league and state level.",
       highlights: [
@@ -112,7 +112,7 @@ export const work = {
         "Inspire Award 1st - Texas State Cup, Mockingbird Division",
         "Inspire Award 3rd - FIT Central Regional Championship",
         "Inspire Award 2nd - FIT Central GEMS League Tournament, 2024-25",
-        "FIRST Leadership Award nominee",
+        "FIRST Leadership Award Finalist",
       ],
       image: "/gallery/chaigpt-banner.jpg",
       alt: "CHAI GPT 24133 team banner with two robots and Inspire Award trophies",
