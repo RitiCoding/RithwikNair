@@ -4,13 +4,7 @@ import { useEffect, useRef } from "react";
 import { useReducedMotion } from "@/lib/hooks";
 
 /** Counts up to `value` the first time it scrolls into view. */
-export default function Counter({
-  value,
-  className = "",
-}: {
-  value: string;
-  className?: string;
-}) {
+export default function Counter({ value, className = "" }: { value: string; className?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const reduced = useReducedMotion();
 
@@ -19,7 +13,7 @@ export default function Counter({
     if (!el) return;
 
     const target = parseInt(value, 10);
-    // anything that isn't a plain number just renders as written
+    // anything that isn't a plain number renders as written
     if (Number.isNaN(target) || reduced) {
       el.textContent = value;
       return;
@@ -27,27 +21,28 @@ export default function Counter({
 
     const suffix = value.replace(/^\d+/, "");
     el.textContent = `0${suffix}`;
+    let raf = 0;
 
     const io = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) return;
         io.disconnect();
-
         const start = performance.now();
-        const duration = 900;
         const step = (now: number) => {
-          const t = Math.min(1, (now - start) / duration);
-          const eased = 1 - Math.pow(1 - t, 3);
-          el.textContent = `${Math.round(target * eased)}${suffix}`;
-          if (t < 1) requestAnimationFrame(step);
+          const t = Math.min(1, (now - start) / 1100);
+          el.textContent = `${Math.round(target * (1 - Math.pow(1 - t, 3)))}${suffix}`;
+          if (t < 1) raf = requestAnimationFrame(step);
         };
-        requestAnimationFrame(step);
+        raf = requestAnimationFrame(step);
       },
       { threshold: 0.6 },
     );
 
     io.observe(el);
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+    };
   }, [value, reduced]);
 
   return (

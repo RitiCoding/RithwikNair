@@ -1,105 +1,173 @@
-import Counter from "../Counter";
-import ParallaxImage from "../ParallaxImage";
-import Reveal from "../Reveal";
-import SectionHead from "../SectionHead";
-import SplitText from "../SplitText";
-import { work } from "@/lib/content";
+import Counter from "../ui/Counter";
+import Media from "../ui/Media";
+import Reveal from "../ui/Reveal";
+import SectionHead from "../ui/SectionHead";
+import Title from "../ui/Title";
+import { work, type WorkEntry } from "@/lib/content";
+
+function Highlights({ items }: { items: string[] }) {
+  return (
+    <ul className="highlights">
+      {items.map((h, i) => (
+        <li key={h} className="text-[0.95rem] leading-snug text-paper">
+          <span className="t-label tabular pt-[0.2em] text-dim">{String(i + 1).padStart(2, "0")}</span>
+          <span>{h}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Meta({ entry }: { entry: WorkEntry }) {
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
+      <span className="t-label tabular text-brand">{entry.no}</span>
+      <span className="t-label">{entry.program}</span>
+    </div>
+  );
+}
+
+function Heading({ entry }: { entry: WorkEntry }) {
+  return (
+    <>
+      <p className="t-label mt-8 text-paper">{entry.short}</p>
+      <h3 className="t-h3 mt-3">{entry.team}</h3>
+      {entry.role ? (
+        <p className="mt-4 text-[1.02rem] font-medium tracking-[-0.01em] text-brand">{entry.role}</p>
+      ) : null}
+    </>
+  );
+}
+
+/** Images in an equal-height band, then the details underneath. */
+function RowEntry({ entry }: { entry: WorkEntry }) {
+  return (
+    <article className="border-t border-line pt-10 md:pt-14">
+      <div className="grid grid-cols-12 gap-x-[var(--gap)]">
+        <Reveal className="col-span-12 md:col-span-7" y={20}>
+          <Meta entry={entry} />
+          <Heading entry={entry} />
+        </Reveal>
+      </div>
+
+      <div className="media-row mt-10 md:mt-14">
+        {entry.media.map((m, i) => (
+          <Media
+            key={m.src}
+            src={m.src}
+            alt={m.alt}
+            ratio={m.ratio}
+            focus={m.focus}
+            delay={i * 110}
+            zoom={i === 0 ? 0.12 : 0.06}
+            distance={i === 0 ? 70 : 44}
+            sizes={i === 0 ? "(min-width: 768px) 55vw, 100vw" : "(min-width: 768px) 25vw, 50vw"}
+            style={{ flexGrow: m.ratio }}
+          />
+        ))}
+      </div>
+
+      <div className="mt-10 grid grid-cols-12 gap-x-[var(--gap)] gap-y-10 md:mt-14">
+        <Reveal as="p" className="t-body col-span-12 md:col-span-5" y={18}>
+          {entry.body}
+        </Reveal>
+        <Reveal className="col-span-12 md:col-span-6 md:col-start-7" delay={100} y={18}>
+          <Highlights items={entry.highlights} />
+        </Reveal>
+      </div>
+    </article>
+  );
+}
+
+/**
+ * Column placement at md and up for [image, details]: a landscape image gets
+ * the wider column, and a flipped entry puts the image on the right. Phones
+ * always stack the image first.
+ */
+const SPLIT = {
+  tall: [
+    ["md:col-span-5", "md:col-span-6 md:col-start-7"],
+    ["md:col-span-5 md:col-start-8 md:row-start-1", "md:col-span-6 md:col-start-1 md:row-start-1"],
+  ],
+  wide: [
+    ["md:col-span-6", "md:col-span-5 md:col-start-8"],
+    ["md:col-span-6 md:col-start-7 md:row-start-1", "md:col-span-5 md:col-start-1 md:row-start-1"],
+  ],
+};
+
+/** One image beside the details. */
+function SplitEntry({ entry, flip }: { entry: WorkEntry; flip: boolean }) {
+  const m = entry.media[0];
+  const wide = m.ratio >= 1;
+  const [mediaCols, textCols] = SPLIT[wide ? "wide" : "tall"][flip ? 1 : 0];
+  return (
+    <article className="grid grid-cols-12 gap-x-[var(--gap)] gap-y-10 border-t border-line pt-10 md:pt-14">
+      <div className={`col-span-12 ${mediaCols}`}>
+        <Media
+          src={m.src}
+          alt={m.alt}
+          ratio={m.ratio}
+          focus={m.focus}
+          zoom={0.1}
+          sizes={wide ? "(min-width: 768px) 50vw, 100vw" : "(min-width: 768px) 40vw, 100vw"}
+        />
+      </div>
+      <div className={`col-span-12 flex flex-col ${textCols}`}>
+        <Reveal y={20}>
+          <Meta entry={entry} />
+          <Heading entry={entry} />
+        </Reveal>
+        <Reveal as="p" className="t-body mt-8 max-w-[44ch]" delay={80} y={18}>
+          {entry.body}
+        </Reveal>
+        <Reveal className="mt-10 md:mt-auto" delay={140} y={18}>
+          <Highlights items={entry.highlights} />
+        </Reveal>
+      </div>
+    </article>
+  );
+}
 
 export default function Work() {
+  // split entries alternate sides
+  let splits = 0;
+
   return (
-    <section className="relative border-t border-white/[0.06] py-24 sm:py-36">
-      <div className="mx-auto max-w-7xl px-5 sm:px-8">
+    <section data-chapter={work.label} data-chapter-index={work.index} className="relative z-10 bg-ink">
+      <div className="shell section-pad">
         <SectionHead index={work.index} label={work.label} />
 
-        <div className="mt-10 grid gap-8 sm:mt-14 sm:grid-cols-12 sm:items-end">
-          <SplitText
-            text={work.headline}
-            as="h2"
-            drift={64}
-            className="display text-[clamp(2.4rem,8vw,7rem)] text-paper sm:col-span-7"
-          />
-          <Reveal
-            as="p"
-            delay={160}
-            className="max-w-[46ch] text-base leading-relaxed text-muted sm:col-span-5 sm:text-lg"
-          >
+        <div className="mt-10 grid grid-cols-12 gap-x-[var(--gap)] gap-y-8 md:mt-14 md:items-end">
+          <Title text={work.title} className="t-h2 col-span-12 md:col-span-7" />
+          <Reveal as="p" className="t-body col-span-12 max-w-[40ch] md:col-span-4 md:col-start-9" delay={150}>
             {work.intro}
           </Reveal>
         </div>
 
-        {/* stat row */}
-        <div className="mt-16 grid grid-cols-3 gap-4 border-y border-white/[0.06] py-8 sm:mt-24 sm:py-12">
-          {work.stats.map((stat, i) => (
-            <Reveal key={stat.label} delay={i * 110} y={20} className="text-center sm:text-left">
-              <Counter
-                value={stat.value}
-                className="display block text-[clamp(2rem,6vw,4.5rem)] text-brand"
-              />
-              <div className="eyebrow mt-2">{stat.label}</div>
+        <dl className="mt-16 grid grid-cols-3 border-y border-line md:mt-24">
+          {work.stats.map((s, i) => (
+            <Reveal
+              key={s.label}
+              delay={i * 110}
+              y={16}
+              className={`flex flex-col-reverse gap-4 py-8 md:py-12 ${i > 0 ? "border-l border-line pl-4 md:pl-8" : "pr-4"}`}
+            >
+              <dt className="t-label">{s.label}</dt>
+              <dd>
+                <Counter value={s.value} className="stat-num tabular block" />
+              </dd>
             </Reveal>
           ))}
-        </div>
+        </dl>
 
-        <div className="mt-20 space-y-28 sm:mt-32 sm:space-y-44">
-          {work.entries.map((entry, i) => (
-            <article
-              key={entry.no}
-              className="grid gap-8 sm:grid-cols-12 sm:items-center sm:gap-12"
-            >
-              <Reveal
-                y={44}
-                className={
-                  i % 2 === 0
-                    ? "sm:col-span-6 sm:col-start-1"
-                    : "sm:col-span-6 sm:col-start-7 sm:row-start-1"
-                }
-              >
-                <ParallaxImage
-                  src={entry.image}
-                  alt={entry.alt}
-                  ratio={entry.ratio}
-                  distance={90}
-                  sizes="(max-width: 640px) 100vw, 48vw"
-                />
-              </Reveal>
-
-              <div
-                className={
-                  i % 2 === 0
-                    ? "sm:col-span-5 sm:col-start-8"
-                    : "sm:col-span-5 sm:col-start-1 sm:row-start-1"
-                }
-              >
-                <Reveal delay={120}>
-                  <div className="flex items-baseline gap-4">
-                    <span className="eyebrow text-brand">{entry.no}</span>
-                    <span className="eyebrow">{entry.years}</span>
-                  </div>
-
-                  <h3 className="mt-5 text-2xl font-semibold leading-tight tracking-tight text-paper sm:text-3xl">
-                    {entry.team}
-                  </h3>
-                  <p className="mt-2 text-sm text-brand">{entry.role}</p>
-
-                  <p className="mt-5 max-w-[48ch] text-base leading-relaxed text-muted">
-                    {entry.body}
-                  </p>
-
-                  <ul className="mt-8 space-y-0">
-                    {entry.highlights.map((h) => (
-                      <li
-                        key={h}
-                        className="flex items-start gap-3 border-t border-white/[0.07] py-3 text-sm text-paper/80"
-                      >
-                        <span className="mt-[0.55em] block h-1 w-1 shrink-0 rounded-full bg-brand" />
-                        {h}
-                      </li>
-                    ))}
-                  </ul>
-                </Reveal>
-              </div>
-            </article>
-          ))}
+        <div className="mt-24 space-y-28 md:mt-36 md:space-y-40">
+          {work.entries.map((entry) =>
+            entry.layout === "split" ? (
+              <SplitEntry key={entry.no} entry={entry} flip={splits++ % 2 === 1} />
+            ) : (
+              <RowEntry key={entry.no} entry={entry} />
+            ),
+          )}
         </div>
       </div>
     </section>

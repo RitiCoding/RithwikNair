@@ -1,22 +1,70 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------ tokens */
+
 @theme {
-  /* true black, so the cut-out portraits sit on the page with no seam */
-  --color-ink: #000000;
-  --color-ink-2: #0b0b0c;
-  --color-paper: #f3f3f4;
-  --color-muted: #8b8b90;
-  --color-faint: #46464b;
-  --color-brand: #ff2118;
-  --color-brand-deep: #a80d08;
+  --color-ink: #080808;
+  --color-ink-2: #0f0f0f;
+  --color-ink-3: #171717;
+  --color-paper: #ededed;
+  --color-mute: #8e8e8e;
+  --color-dim: #5b5b5b;
+  --color-faint: #2a2a2a;
+  --color-line: rgb(255 255 255 / 0.1);
+  --color-brand: #ff3322;
+
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-quart: cubic-bezier(0.76, 0, 0.24, 1);
 }
 
 @theme inline {
-  --font-display: var(--font-archivo);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
-/* ---------- Lenis ---------- */
+:root {
+  --gutter: clamp(1.25rem, 3.4vw, 3rem);
+  --gap: clamp(1rem, 2vw, 2rem);
+  --section: clamp(6.5rem, 12vw, 11.5rem);
+  --sheet: clamp(1.25rem, 2.8vw, 2.5rem);
+}
+
+/* -------------------------------------------------------------------- base */
+
+@layer base {
+html {
+  background: var(--color-ink);
+  color-scheme: dark;
+  scrollbar-width: none;
+  -webkit-text-size-adjust: 100%;
+}
+html::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-brand);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 1.5px solid var(--color-brand);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+/* Lenis */
 html.lenis,
 html.lenis body {
   height: auto;
@@ -31,209 +79,461 @@ html.lenis body {
   overflow: hidden;
 }
 
-/* ---------- base ---------- */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
-html {
-  background: var(--color-ink);
-  color-scheme: dark;
-}
-
-body {
-  background: var(--color-ink);
-  color: var(--color-paper);
-  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-synthesis-weight: none;
-  overflow-x: hidden;
-}
-
-::selection {
-  background: var(--color-brand);
-  color: #fff;
-}
-
-::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
-
-/* Fine film grain, which keeps large flat blacks from banding. */
+/* Fine film grain: keeps large areas of near-black from banding. */
 body::after {
   content: "";
   position: fixed;
   inset: -50%;
-  z-index: 60;
+  z-index: 100;
   pointer-events: none;
-  opacity: 0.032;
+  opacity: 0.035;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
   animation: grain 6s steps(6) infinite;
 }
-
 @keyframes grain {
   0%, 100% { transform: translate(0, 0); }
-  16%  { transform: translate(-2%, 1%); }
-  33%  { transform: translate(1%, -2%); }
-  50%  { transform: translate(-1%, 2%); }
-  66%  { transform: translate(2%, 1%); }
-  83%  { transform: translate(1%, -1%); }
+  16% { transform: translate(-2%, 1%); }
+  33% { transform: translate(1%, -2%); }
+  50% { transform: translate(-1%, 2%); }
+  66% { transform: translate(2%, 1%); }
+  83% { transform: translate(1%, -1%); }
+}
 }
 
-/* ---------- type ---------- */
-.display {
-  font-weight: 900;
-  letter-spacing: -0.045em;
-  line-height: 0.86;
+@layer components {
+/* ------------------------------------------------------------------ layout */
+
+.shell {
+  width: 100%;
+  max-width: 1680px;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.section-pad {
+  padding-block: var(--section);
+}
+
+/* A section that slides over the one before it like a sheet of paper. */
+.sheet-over {
+  border-top-left-radius: var(--sheet);
+  border-top-right-radius: var(--sheet);
+  box-shadow:
+    0 -1px 0 var(--color-line),
+    0 -40px 80px rgb(0 0 0 / 0.55);
+}
+
+/* main lifts off the footer at the end of the page */
+.page {
+  position: relative;
+  z-index: 10;
+  background: var(--color-ink);
+  border-bottom-left-radius: var(--sheet);
+  border-bottom-right-radius: var(--sheet);
+  overflow: clip;
+  box-shadow:
+    0 1px 0 var(--color-line),
+    0 40px 80px rgb(0 0 0 / 0.6);
+}
+
+/* -------------------------------------------------------------------- type */
+
+.t-hero {
+  font-weight: 600;
+  font-size: clamp(4.25rem, 17vw, 18rem);
+  line-height: 0.9;
+  letter-spacing: -0.066em;
+}
+.t-h2 {
+  font-weight: 500;
+  font-size: clamp(2.6rem, 7vw, 7.25rem);
+  line-height: 0.95;
+  letter-spacing: -0.052em;
+}
+.t-h3 {
+  font-weight: 500;
+  font-size: clamp(1.9rem, 3.9vw, 3.75rem);
+  line-height: 1;
+  letter-spacing: -0.042em;
+}
+.t-lead {
+  font-weight: 450;
+  font-size: clamp(1.4rem, 2.5vw, 2.45rem);
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+.t-body {
+  font-size: clamp(0.98rem, 1.02vw, 1.0625rem);
+  line-height: 1.65;
+  color: var(--color-mute);
+}
+.t-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.25;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: var(--color-mute);
+}
+/* one word per heading, set in the serif italic */
+.accent {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  font-size: 1.08em;
 }
 
-.eyebrow {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: clamp(0.6rem, 0.72vw, 0.72rem);
-  letter-spacing: 0.34em;
-  text-transform: uppercase;
-  color: var(--color-muted);
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
-.rule {
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in oklab, var(--color-brand) 70%, transparent),
-    color-mix(in oklab, var(--color-paper) 14%, transparent) 38%,
-    transparent
-  );
+/* underline that draws in from the left on hover */
+.link-line {
+  background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+  transition: background-size 0.6s var(--ease-expo);
+}
+.link-line:hover,
+.link-line:focus-visible {
+  background-size: 100% 1px;
 }
 
-/* ---------- scroll reveal ---------- */
+/* ------------------------------------------------- scroll-triggered motion */
+
+/* Every hidden starting state is gated on html.js, so nothing is ever stranded
+   invisible if scripts don't run. */
+
 .reveal {
-  opacity: 0;
-  transform: translate3d(0, var(--ry, 30px), 0);
   transition:
-    opacity 0.95s cubic-bezier(0.16, 1, 0.3, 1) var(--rd, 0ms),
-    transform 1.15s cubic-bezier(0.16, 1, 0.3, 1) var(--rd, 0ms);
-  will-change: opacity, transform;
+    opacity 1s var(--ease-expo) var(--rd, 0ms),
+    transform 1.2s var(--ease-expo) var(--rd, 0ms);
 }
-.reveal.is-in {
-  opacity: 1;
-  transform: none;
-}
-.reveal.is-in.reveal-done {
-  will-change: auto;
+html.js .reveal:not(.is-in) {
+  opacity: 0;
+  transform: translate3d(0, var(--ry, 28px), 0);
 }
 
-/* Hard-edged clip wipe for framed media.
-   The clipped layer is *inside* the observed element on purpose: a clip-path
-   collapses an element's intersection rectangle, so an IntersectionObserver
-   watching the clipped node itself would never reach its threshold and the
-   image would stay hidden forever. */
-.wipe {
-  position: absolute;
-  inset: 0;
-  clip-path: inset(0 0 100% 0);
-  transition: clip-path 1.15s cubic-bezier(0.76, 0, 0.24, 1) var(--rd, 0ms);
-  will-change: clip-path;
-}
-.is-in > .wipe {
-  clip-path: inset(0 0 0 0);
-}
-.wipe-inner {
-  position: absolute;
-  inset: 0;
-  transform: translate3d(0, -9%, 0);
-  transition: transform 1.15s cubic-bezier(0.76, 0, 0.24, 1) var(--rd, 0ms);
-}
-.is-in .wipe-inner {
-  transform: none;
-}
-
-/* word-by-word headline reveal */
+/* headline words rise out of a clipped baseline */
 .split-word {
   display: inline-block;
-  overflow: hidden;
-  vertical-align: bottom;
-  padding-bottom: 0.08em;
-  margin-bottom: -0.08em;
+  overflow: clip;
+  vertical-align: baseline;
+  /* widen the mask so italic overhangs and descenders aren't shaved off */
+  padding: 0.06em 0.08em 0.14em;
+  margin: -0.06em -0.08em -0.14em;
 }
 .split-word > span {
   display: inline-block;
-  transform: translate3d(0, 110%, 0);
-  transition: transform 1.05s cubic-bezier(0.16, 1, 0.3, 1) var(--wd, 0ms);
-  will-change: transform;
+  transition: transform 1.15s var(--ease-expo) var(--wd, 0ms);
 }
-.is-in .split-word > span {
-  transform: none;
+html.js .title:not(.is-in) .split-word > span {
+  transform: translate3d(0, 112%, 0);
 }
 
-@keyframes scrollcue {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(800%); }
-}
-
-/* ---------- marquee ---------- */
-.marquee-track {
+/* section header: labels rise, the hairline draws across */
+.section-head {
   display: flex;
-  width: max-content;
-  animation: marquee var(--mq-dur, 34s) linear infinite;
+  align-items: center;
+  gap: 0.9rem;
 }
-.marquee:hover .marquee-track {
-  animation-play-state: paused;
+.section-head > .t-label {
+  transition:
+    opacity 0.8s var(--ease-expo),
+    transform 1s var(--ease-expo);
 }
-@keyframes marquee {
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
+.section-head > .rule {
+  flex: 1;
+  height: 1px;
+  background: var(--color-line);
+  transform-origin: left center;
+  transition: transform 1.6s var(--ease-expo) 0.12s;
+}
+html.js .section-head:not(.is-in) > .t-label {
+  opacity: 0;
+  transform: translate3d(0, 10px, 0);
+}
+html.js .section-head:not(.is-in) > .rule {
+  transform: scaleX(0);
 }
 
-/* ---------- media ---------- */
-.frame {
+/* image frames: a hard wipe up from the bottom edge */
+.media {
   position: relative;
   overflow: hidden;
   background: var(--color-ink-2);
+  isolation: isolate;
 }
-.frame img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  will-change: transform;
+.media-wipe {
+  position: absolute;
+  inset: 0;
+  transition: clip-path 1.25s var(--ease-quart) var(--rd, 0ms);
+}
+html.js .media:not(.is-in) .media-wipe {
+  clip-path: inset(100% 0 0 0);
 }
 
-/* red edge-light that rides the pointer over the portrait */
+/* scroll-scrubbed statement: words light up as the paragraph passes */
+html.js .scrub [data-w] {
+  opacity: 0.16;
+}
+
+/* ------------------------------------------------- intro-gated entrances */
+
+/* These wait for the intro, which sets data-ready on <html>. */
+.enter-mask {
+  transition: transform 1.5s var(--ease-expo) var(--d, 0ms);
+}
+.enter-fade {
+  transition:
+    opacity 1.1s var(--ease-expo) var(--d, 0ms),
+    transform 1.3s var(--ease-expo) var(--d, 0ms);
+}
+.enter-clip {
+  transition: clip-path 1.6s var(--ease-quart) var(--d, 0ms);
+}
+html.js:not([data-ready="true"]) .enter-mask {
+  transform: translate3d(0, 110%, 0);
+}
+html.js:not([data-ready="true"]) .enter-fade {
+  opacity: 0;
+  transform: translate3d(0, 16px, 0);
+}
+html.js:not([data-ready="true"]) .enter-clip {
+  clip-path: inset(100% 0 0 0);
+}
+
+/* -------------------------------------------------------------- preloader */
+
+.preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: none;
+  background: var(--color-ink);
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 1.1s var(--ease-quart);
+}
+html.js .preloader {
+  display: block;
+}
+/* reduced motion or the failsafe got there first: never show it */
+html.js[data-ready="true"] .preloader:not(.is-leaving) {
+  display: none;
+}
+.preloader.is-leaving {
+  clip-path: inset(0 0 100% 0);
+}
+.preloader-inner {
+  transition: transform 1.1s var(--ease-quart);
+}
+.preloader.is-leaving .preloader-inner {
+  transform: translate3d(0, -8vh, 0);
+}
+.preloader-count {
+  font-weight: 500;
+  font-size: clamp(5rem, 15vw, 14rem);
+  line-height: 0.8;
+  letter-spacing: -0.06em;
+}
+
+/* ------------------------------------------------------------------- hero */
+
+.hero-sep {
+  display: inline-block;
+  width: 0.13em;
+  height: 0.13em;
+  margin-inline: 0.36em;
+  background: var(--color-brand);
+  transform: translateY(-0.12em) rotate(45deg);
+}
+
+/* the label that follows the pointer over the portrait */
+.drag-pill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  pointer-events: none;
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  scale: 0.6;
+  transition:
+    opacity 0.25s ease,
+    scale 0.45s var(--ease-expo);
+}
+.drag-pill.is-on {
+  opacity: 1;
+  scale: 1;
+}
+.drag-pill.is-pressed {
+  scale: 0.86;
+}
+
 .pointer-glow {
   position: absolute;
   inset: 0;
   pointer-events: none;
   mix-blend-mode: screen;
   opacity: 0;
-  transition: opacity 0.6s ease;
 }
 
+@keyframes cue {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(400%); }
+}
+.scroll-cue {
+  animation: cue 1.9s var(--ease-quart) infinite;
+}
+
+/* -------------------------------------------------------------- interests */
+
+/* Script drives each picture's clip, stacking order and settle; this is only
+   the state before it takes over: the first picture showing, the rest away. */
+.interest-layer {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(100% 0 0 0);
+}
+.interest-layer:first-child {
+  clip-path: none;
+}
+
+@media (min-width: 768px) {
+  .interest-item {
+    min-height: 74vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0.22;
+    transition: opacity 0.7s var(--ease-expo);
+  }
+  .interest-item[data-on="true"] {
+    opacity: 1;
+  }
+}
+
+/* ------------------------------------------------------------------- work */
+
+/* Equal-height image band: each item grows in proportion to its aspect ratio
+   (set inline), so every frame lands at the same height. */
+.media-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.media-row > :first-child {
+  grid-column: 1 / -1;
+}
+/* on phones the band becomes a grid, so the smaller frames share one shape
+   (beats the inline aspect ratio that drives the desktop band) */
+@media (max-width: 767px) {
+  .media-row > :not(:first-child) {
+    aspect-ratio: 3 / 4 !important;
+  }
+}
+@media (min-width: 768px) {
+  .media-row {
+    display: flex;
+    align-items: flex-start;
+    gap: clamp(0.75rem, 1.1vw, 1.25rem);
+  }
+  .media-row > * {
+    flex-basis: 0;
+    min-width: 0;
+  }
+}
+
+.highlights li {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr;
+  gap: 0.75rem;
+  padding-block: 0.95rem;
+  border-top: 1px solid var(--color-line);
+}
+.highlights li:last-child {
+  border-bottom: 1px solid var(--color-line);
+}
+
+.stat-num {
+  font-weight: 500;
+  font-size: clamp(3rem, 7vw, 6.5rem);
+  line-height: 0.85;
+  letter-spacing: -0.06em;
+}
+
+/* ---------------------------------------------------------------- contact */
+
+.contact {
+  position: sticky;
+  bottom: 0;
+  z-index: 0;
+  background: var(--color-ink-2);
+}
+/* a short screen can't fit the whole footer, so let it scroll normally */
+@media (max-height: 620px) {
+  .contact {
+    position: relative;
+  }
+}
+
+.contact-email {
+  font-weight: 500;
+  font-size: clamp(1.6rem, 4.4vw, 4.25rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.footer-mark {
+  display: inline-block;
+  font-weight: 600;
+  line-height: 0.8;
+  letter-spacing: -0.066em;
+  white-space: nowrap;
+  overflow: clip;
+  padding-bottom: 0.04em;
+  color: var(--color-paper);
+}
+.footer-mark > span {
+  display: inline-block;
+}
+
+/* --------------------------------------------------------- reduced motion */
+
 @media (prefers-reduced-motion: reduce) {
-  .reveal,
-  .split-word > span,
-  .wipe,
-  .wipe-inner {
+  *,
+  *::before,
+  *::after {
     transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
-  .wipe {
-    clip-path: none;
-  }
-  .wipe-inner {
-    transform: none;
-  }
-  .reveal {
+  html.js .reveal:not(.is-in),
+  html.js .title:not(.is-in) .split-word > span,
+  html.js .section-head:not(.is-in) > .t-label {
     opacity: 1;
     transform: none;
   }
-  .split-word > span {
+  html.js .section-head:not(.is-in) > .rule {
     transform: none;
   }
-  .marquee-track {
-    animation: none;
+  html.js .media:not(.is-in) .media-wipe {
+    clip-path: none;
   }
   body::after {
     animation: none;
   }
+}
+
+@keyframes roll {
+  from { transform: translate3d(0, 105%, 0); }
+  to { transform: none; }
+}
 }

@@ -2,18 +2,17 @@
 
 import { useEffect, useRef } from "react";
 import { useReducedMotion } from "@/lib/hooks";
+import { whenReady } from "@/lib/ready";
 import { addTask, clamp, damp } from "@/lib/ticker";
 
 /**
  * Two portraits framed identically. The source images are pre-aligned and cut
- * out of their black backdrops so the subject's head sits in the same place in
+ * out of their black backdrops, so the subject's head sits in the same place in
  * both.
  *
- * The reveal is a cluster of hard-edged horizontal bands that ride the pointer.
- * Every band is a solid fillRect, the mask is rebuilt from scratch each frame,
- * and the enter/exit animation scales band *geometry* rather than opacity, so
- * the swap is never seen as a translucent blend at any point.
- *
+ * Dragging paints Atlas in through a grid of square cells. A cell is either on
+ * or off, so every edge is hard and nothing is ever seen as a translucent blend.
+ * Paint holds while the pointer is down and dissolves pixel by pixel after.
  * Scrolling away shears the portrait into offset horizontal slices.
  */
 
@@ -24,17 +23,15 @@ const ASPECT = 1200 / 1500;
 const MAX_DPR = 1.5; // the frame is large; cap the backing store
 
 /**
- * Brush tuning. The reveal is painted into a grid of square cells: a cell is
- * either fully on or fully off, so every edge is hard and nothing is ever
- * translucent. CELL_DIVISOR sets the chunkiness — frame width / 30 gives visible
- * pixels; raise the divisor toward ~200 and the same brush reads as smooth.
+ * Brush tuning. CELL_DIVISOR sets the chunkiness: frame width / 40 gives
+ * visible pixels; raise it toward ~200 and the same brush reads as smooth.
  */
-const CELL_DIVISOR = 30;
-const CELL_MIN = 10;
-const CELL_MAX = 34;
-const BRUSH = 0.145; // brush radius as a fraction of frame width
+const CELL_DIVISOR = 40;
+const CELL_MIN = 8;
+const CELL_MAX = 28;
+const BRUSH = 0.14; // brush radius as a fraction of frame width
 const FLOW = 0.85; // how fast a cell fills under the brush
-const FADE = 0.955; // per-frame decay, which dissolves the stroke pixel by pixel
+const FADE = 0.955; // per-frame decay once the pointer lets go
 
 const STRIPS = 16;
 /** deterministic per-strip offset in [-1, 1] for the scroll shear */
@@ -47,15 +44,18 @@ type Pt = { x: number; y: number };
 
 export default function RevealPortrait({
   className = "",
+  label = "Drag",
   onTouch,
 }: {
   className?: string;
+  label?: string;
   onTouch?: () => void;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
+  const pillRef = useRef<HTMLDivElement>(null);
   const onTouchRef = useRef(onTouch);
   useEffect(() => {
     onTouchRef.current = onTouch;
@@ -73,8 +73,7 @@ export default function RevealPortrait({
 
     const mask = document.createElement("canvas");
     const mctx = mask.getContext("2d");
-    // scratch holds Atlas already clipped to the bands, so the red accent stays
-    // inside the opening instead of tinting the whole portrait
+    // Atlas already clipped to the painted cells, composited in one pass
     const scratch = document.createElement("canvas");
     const sctx = scratch.getContext("2d");
     if (!mctx || !sctx) return;
@@ -107,11 +106,10 @@ export default function RevealPortrait({
     let seed = new Float32Array(0);
     let wet = 0; // cells currently above threshold, so an empty grid can idle
 
-    // pointer state
     let pointer: Pt | null = null;
     let lastPaint: Pt | null = null;
     let pressed = false;
-    let hovering = false;
+    let hovering = false; // mouse only, so touch never shows the label
     let touched = false;
 
     let open = 0; // 0 to 1, brush size envelope
@@ -119,17 +117,26 @@ export default function RevealPortrait({
     let scrollP = 0;
     let glowX = 0.5;
     let glowY = 0.3;
+    let pillX = 0;
+    let pillY = 0;
+    let pillOn = false;
+    let pillPressed = false;
 
+    // a short self-playing stroke once the intro has finished, so the
+    // interaction is discoverable; any real input cancels it for good
+    let started = false;
+    const offReady = whenReady(() => (started = true));
     let demoT = 0;
-    const DEMO_IN = 0.8;
-    const DEMO_OUT = 6.5;
-    const demoActive = () => !touched && !reduced && demoT < DEMO_OUT + 1.2;
+    const DEMO_IN = 0.9;
+    const DEMO_OUT = 5.5;
+    const demoActive = () => started && !touched && !reduced && demoT < DEMO_OUT + 1.2;
 
     function resize() {
       const rect = wrap!.getBoundingClientRect();
       const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-      w = Math.round(rect.width);
-      h = Math.round(rect.height);
+      // layout size, not the transformed one: the hero scales this frame on scroll
+      w = Math.round(wrap!.offsetWidth || rect.width);
+      h = Math.round(wrap!.offsetHeight || rect.height);
       if (w === 0 || h === 0) return;
 
       for (const c of [canvas!, mask, scratch]) {
@@ -138,7 +145,6 @@ export default function RevealPortrait({
       }
       canvas!.style.width = `${w}px`;
       canvas!.style.height = `${h}px`;
-
       for (const c of [ctx!, mctx!, sctx!]) c.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       cell = Math.max(CELL_MIN, Math.min(CELL_MAX, Math.round(w / CELL_DIVISOR)));
@@ -193,13 +199,9 @@ export default function RevealPortrait({
     }
 
     /**
-     * Fade the grid, then stamp every cell that is still above its own
-     * threshold. Because the thresholds differ per cell, the stroke frays at the
-     * edge and dissolves pixel by pixel rather than fading out as a whole.
-     *
+     * Fade the grid, then stamp every cell still above its own threshold.
      * While the pointer is held down the paint is frozen: a stroke that eats
-     * itself under the cursor reads as the brush animating rather than as
-     * painting. It only starts dissolving once the drag ends.
+     * itself under the cursor reads as the brush animating, not as painting.
      */
     function renderMask() {
       const decay = pressed ? 1 : FADE;
@@ -231,17 +233,32 @@ export default function RevealPortrait({
       const sh = img.naturalHeight / STRIPS;
       const dh = h / STRIPS;
       for (let i = 0; i < STRIPS; i++) {
-        c.drawImage(
-          img,
-          0,
-          i * sh,
-          img.naturalWidth,
-          sh,
-          stripDx[i] * offset,
-          i * dh,
-          w,
-          dh + 1, // overlap by a pixel so rounding can't open hairline gaps
-        );
+        // overlap by a pixel so rounding can't open hairline gaps
+        c.drawImage(img, 0, i * sh, img.naturalWidth, sh, stripDx[i] * offset, i * dh, w, dh + 1);
+      }
+    }
+
+    function updatePill() {
+      const pill = pillRef.current;
+      if (!pill) return;
+      const on = hovering && pointer !== null;
+      if (on && pointer) {
+        if (!pillOn) {
+          // appear at the pointer rather than sliding in from the last spot
+          pillX = pointer.x;
+          pillY = pointer.y;
+        }
+        pillX = damp(pillX, pointer.x, 22);
+        pillY = damp(pillY, pointer.y, 22);
+        pill.style.transform = `translate3d(${(pillX + 16).toFixed(1)}px, ${(pillY + 16).toFixed(1)}px, 0)`;
+      }
+      if (on !== pillOn) {
+        pill.classList.toggle("is-on", on);
+        pillOn = on;
+      }
+      if (pressed !== pillPressed) {
+        pill.classList.toggle("is-pressed", pressed);
+        pillPressed = pressed;
       }
     }
 
@@ -251,24 +268,25 @@ export default function RevealPortrait({
         if (!demoActive()) return;
         demoT += 1 / 60;
         pointer = {
-          x: w * (0.5 + Math.sin(demoT * 0.75) * 0.17),
-          y: h * 0.3,
+          x: w * (0.5 + Math.sin(demoT * 0.8) * 0.16),
+          y: h * 0.29,
         };
       },
 
       apply() {
-        if (!w || !h || !ready) return;
+        updatePill();
+        // the next section covers the hero entirely here: nothing to draw
+        if (scrollP >= 0.999 || !w || !h || !ready) return;
 
         let target = 0;
         if (pressed && pointer) target = 1;
         else if (hovering && pointer) target = 0.72;
-        else if (demoActive())
-          target = clamp((demoT - DEMO_IN) / 1) * (1 - clamp((demoT - DEMO_OUT) / 1));
+        else if (demoActive()) target = clamp((demoT - DEMO_IN) / 1) * (1 - clamp((demoT - DEMO_OUT) / 1));
 
         open = damp(open, target, target > open ? 16 : 9);
 
-        // shear peaks partway out of the hero, then eases off as it fades
-        const targetShear = w * 0.16 * clamp((scrollP - 0.04) / 0.5) * (1 - clamp((scrollP - 0.55) / 0.45));
+        // shear peaks partway out of the hero, then eases off as it is covered
+        const targetShear = w * 0.12 * clamp((scrollP - 0.04) / 0.5) * (1 - clamp((scrollP - 0.55) / 0.45));
         shear = damp(shear, reduced ? 0 : targetShear, 14);
 
         // paint before deciding to idle, so a fresh stroke always lands
@@ -294,7 +312,6 @@ export default function RevealPortrait({
 
         if (!idle) renderMask();
 
-        // Atlas, clipped to the painted cells
         sctx!.clearRect(0, 0, w, h);
         sctx!.globalCompositeOperation = "source-over";
         drawSliced(sctx!, overlay, shear);
@@ -302,8 +319,8 @@ export default function RevealPortrait({
         sctx!.drawImage(mask, 0, 0, w, h);
         sctx!.globalCompositeOperation = "source-over";
 
-        // Punch the painted cells clean out of the base, then drop Atlas in.
-        // Both are drawn at full opacity, so every boundary is a hard cut.
+        // punch the painted cells clean out of the base, then drop Atlas in;
+        // both at full opacity, so every boundary is a hard cut
         ctx!.clearRect(0, 0, w, h);
         ctx!.globalCompositeOperation = "source-over";
         drawSliced(ctx!, base, shear);
@@ -321,7 +338,7 @@ export default function RevealPortrait({
             0,
           )}px circle at ${(glowX * 100).toFixed(2)}% ${(glowY * 100).toFixed(
             2,
-          )}%, rgba(255,33,24,0.4), rgba(255,33,24,0.05) 52%, transparent 72%)`;
+          )}%, rgba(255,51,34,0.4), rgba(255,51,34,0.05) 52%, transparent 72%)`;
         }
 
         dirty = !idle;
@@ -331,7 +348,10 @@ export default function RevealPortrait({
     // ----- input -----
     const toLocal = (e: PointerEvent): Pt => {
       const r = wrap.getBoundingClientRect();
-      return { x: e.clientX - r.left, y: e.clientY - r.top };
+      // undo the hero's scroll scale so painting lines up with the pointer
+      const sx = r.width / (w || r.width);
+      const sy = r.height / (h || r.height);
+      return { x: (e.clientX - r.left) / sx, y: (e.clientY - r.top) / sy };
     };
 
     const markTouched = () => {
@@ -350,8 +370,8 @@ export default function RevealPortrait({
     };
 
     const onMove = (e: PointerEvent) => {
-      // A finger only paints while it's actually dragging, so vertical
-      // scrolling still belongs to the page.
+      // a finger only paints while it's actually dragging, so vertical
+      // scrolling still belongs to the page
       if (e.pointerType !== "mouse" && !pressed) return;
       markTouched();
       pointer = toLocal(e);
@@ -361,7 +381,7 @@ export default function RevealPortrait({
     const onUp = (e: PointerEvent) => {
       pressed = false;
       if (e.pointerType !== "mouse") pointer = null;
-      wrap.releasePointerCapture?.(e.pointerId);
+      if (wrap.hasPointerCapture?.(e.pointerId)) wrap.releasePointerCapture(e.pointerId);
     };
 
     const onLeave = () => {
@@ -378,6 +398,7 @@ export default function RevealPortrait({
 
     return () => {
       stop();
+      offReady();
       ro.disconnect();
       wrap.removeEventListener("pointerdown", onDown);
       wrap.removeEventListener("pointermove", onMove);
@@ -397,7 +418,7 @@ export default function RevealPortrait({
       <img
         ref={imgRef}
         src={BASE}
-        alt="Rithwik"
+        alt="Rithwik Nair"
         width={1200}
         height={1500}
         draggable={false}
@@ -405,10 +426,14 @@ export default function RevealPortrait({
         fetchPriority="high"
       />
 
-      {/* Atlas, cut in through the band mask */}
+      {/* Atlas, painted in through the cell mask */}
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden />
 
       <div ref={glowRef} className="pointer-glow" aria-hidden />
+
+      <div ref={pillRef} className="drag-pill" aria-hidden>
+        {label}
+      </div>
     </div>
   );
 }

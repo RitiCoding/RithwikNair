@@ -1,19 +1,27 @@
-import Hero from "@/components/Hero";
-import Intro from "@/components/sections/Intro";
-import Passions from "@/components/sections/Passions";
-import Work from "@/components/sections/Work";
+import About from "@/components/sections/About";
+import Contact from "@/components/sections/Contact";
+import Hero from "@/components/sections/Hero";
+import Interests from "@/components/sections/Interests";
 import Personal from "@/components/sections/Personal";
-import Outro from "@/components/sections/Outro";
+import Work from "@/components/sections/Work";
+import { contact } from "@/lib/content";
 
 export default function Home() {
   return (
-    <main>
-      <Hero />
-      <Intro />
-      <Passions />
-      <Work />
-      <Personal />
-      <Outro />
-    </main>
+    <>
+      <main className="page">
+        {/* the hero stays pinned only while About slides up over it */}
+        <div className="relative">
+          <Hero />
+          <About />
+        </div>
+        <Interests />
+        <Work />
+        <Personal />
+        {/* marks where the page lifts off the footer, for the header's chapter label */}
+        <div data-chapter-end data-chapter={contact.label} data-chapter-index={contact.index} aria-hidden />
+      </main>
+      <Contact year={new Date().getFullYear()} />
+    </>
   );
 }

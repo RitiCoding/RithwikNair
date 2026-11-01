@@ -1,43 +1,37 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import { addTask, clamp } from "./ticker";
 
-export function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
+function useMedia(query: string) {
+  const [match, setMatch] = useState(false);
 
   useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => setReduced(mq.matches);
+    const mq = window.matchMedia(query);
+    const sync = () => setMatch(mq.matches);
     sync();
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
-  }, []);
+  }, [query]);
 
-  return reduced;
+  return match;
 }
 
-export function useCoarsePointer() {
-  const [coarse, setCoarse] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(hover: none), (pointer: coarse)");
-    const sync = () => setCoarse(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-
-  return coarse;
-}
+export const useReducedMotion = () => useMedia("(prefers-reduced-motion: reduce)");
+export const useFinePointer = () => useMedia("(hover: hover) and (pointer: fine)");
+export const useDesktop = () => useMedia("(min-width: 768px)");
 
 /**
- * Adds `is-in` once the element crosses into view. One-way by design, because
- * content that re-hides on scroll-up reads as a glitch rather than an effect.
+ * Adds `is-in` once the element crosses into view. One-way by design: content
+ * that re-hides on scroll-up reads as a glitch rather than an effect.
+ *
+ * Never point this at an element that is itself clipped by a `clip-path`: the
+ * clip collapses its intersection rectangle, so the threshold is never reached.
+ * Observe an unclipped parent instead.
  */
 export function useInView<T extends HTMLElement>(
   ref: RefObject<T | null>,
-  { threshold = 0.18, rootMargin = "0px 0px -12% 0px" } = {},
+  { threshold = 0.2, rootMargin = "0px 0px -10% 0px" } = {},
 ) {
   useEffect(() => {
     const el = ref.current;
@@ -53,8 +47,6 @@ export function useInView<T extends HTMLElement>(
         if (!entry.isIntersecting) return;
         el.classList.add("is-in");
         io.disconnect();
-        // release the compositor hint once the transition has settled
-        window.setTimeout(() => el.classList.add("reveal-done"), 2200);
       },
       { threshold, rootMargin },
     );
@@ -64,95 +56,93 @@ export function useInView<T extends HTMLElement>(
   }, [ref, threshold, rootMargin]);
 }
 
-type ParallaxOptions = {
-  /** Total travel in px across the element's full pass through the viewport. */
+type MotionOptions = {
+  /** Parallax travel in px over the frame's whole pass through the viewport. */
   distance?: number;
-  /** Constant overscale that gives the drift room to move inside its frame. */
-  baseScale?: number;
-  /** Extra scale at mid-pass, e.g. 0.04 → up to +4%. */
+  /** Extra scale on entry that settles to rest as the frame reaches mid-screen. */
   zoom?: number;
-  axis?: "y" | "x";
 };
 
 /**
- * Maps an element's progress through the viewport onto a transform.
- * Progress is 0 as the element's top touches the bottom of the screen and
- * 1 once its bottom clears the top.
+ * Moves an image inside its frame as the page scrolls. The image is overscaled,
+ * and the drift is clamped to that overscan, so an edge can never slide into
+ * view however the numbers are tuned.
  */
-export function useParallax<T extends HTMLElement>(
-  ref: RefObject<T | null>,
-  { distance = 90, baseScale = 1, zoom = 0, axis = "y" }: ParallaxOptions = {},
+export function useMediaMotion(
+  imgRef: RefObject<HTMLElement | null>,
+  frameRef: RefObject<HTMLElement | null>,
+  { distance = 60, zoom = 0 }: MotionOptions = {},
 ) {
   const reduced = useReducedMotion();
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const img = imgRef.current;
+    const frame = frameRef.current;
+    if (!img || !frame) return;
 
-    // nothing to animate, so don't take a slot in the frame loop
-    if (distance === 0 && zoom === 0 && baseScale === 1) return;
-
+    const BASE = 1.08;
     if (reduced) {
-      el.style.transform = `scale(${baseScale})`;
+      img.style.transform = `scale(${BASE})`;
       return () => {
-        el.style.transform = "";
+        img.style.transform = "";
       };
     }
 
+    let visible = false;
     let progress = 0.5;
-    let visible = true;
+    let height = 1;
 
     const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting), {
-      rootMargin: "20% 0px 20% 0px",
+      rootMargin: "15% 0px 15% 0px",
     });
-    io.observe(el);
+    io.observe(frame);
 
     const stop = addTask({
       measure() {
         if (!visible) return;
-        const rect = el.getBoundingClientRect();
+        const r = frame.getBoundingClientRect();
         const vh = window.innerHeight || 1;
-        progress = clamp((vh - rect.top) / (vh + rect.height));
+        height = r.height || 1;
+        progress = clamp((vh - r.top) / (vh + r.height));
       },
       apply() {
         if (!visible) return;
-        const offset = (progress - 0.5) * distance;
-        const scale = baseScale + zoom * (1 - Math.abs(progress - 0.5) * 2);
-        const move =
-          axis === "y"
-            ? `translate3d(0, ${offset.toFixed(2)}px, 0)`
-            : `translate3d(${offset.toFixed(2)}px, 0, 0)`;
-        el.style.transform = `${move} scale(${scale.toFixed(4)})`;
+        const scale = BASE + zoom * (1 - clamp(progress * 1.8));
+        const room = ((scale - 1) * height) / 2 - 1;
+        const y = Math.max(-room, Math.min(room, (progress - 0.5) * distance));
+        img.style.transform = `translate3d(0, ${y.toFixed(2)}px, 0) scale(${scale.toFixed(4)})`;
       },
     });
 
     return () => {
       io.disconnect();
       stop();
-      el.style.transform = "";
+      img.style.transform = "";
     };
-  }, [ref, distance, baseScale, zoom, axis, reduced]);
+  }, [imgRef, frameRef, distance, zoom, reduced]);
 }
 
-/** Scroll progress of the whole document, 0 → 1. */
-export function useScrollProgress() {
-  const ref = useRef<HTMLDivElement>(null);
-
+/**
+ * Sizes a single line of text to exactly fill its container's width, and keeps
+ * it that way through resizes and web-font swaps.
+ */
+export function useFitText(ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    const box = el?.parentElement;
+    if (!el || !box) return;
 
-    let p = 0;
-    return addTask({
-      measure() {
-        const max = document.documentElement.scrollHeight - window.innerHeight;
-        p = max > 0 ? clamp(window.scrollY / max) : 0;
-      },
-      apply() {
-        el.style.transform = `scaleX(${p.toFixed(4)})`;
-      },
-    });
-  }, []);
+    const fit = () => {
+      el.style.fontSize = "100px";
+      const natural = el.scrollWidth;
+      const target = box.clientWidth;
+      if (natural > 0 && target > 0) el.style.fontSize = `${(100 * target) / natural}px`;
+    };
 
-  return ref;
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(box);
+    document.fonts?.ready.then(fit);
+    return () => ro.disconnect();
+  }, [ref]);
 }
