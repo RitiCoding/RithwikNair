@@ -37,7 +37,7 @@ export const about = {
   label: "About",
   title: "I design and build *robots*.",
   statement:
-    "I love building things, especially robots, and I've been doing it since I was six. It started with Lego, which is how I first qualified for the FIRST World Championship. Today my passion is mechanical design, and the applied physics and math behind engineering.",
+    "I love building things, and I've always wanted to know how they work. It started with Lego when I was six, which is how I first qualified for the FIRST World Championship. Then it was robots. Now I can't help noticing how things are put together, whether it's a gearbox or a folding chair. Mechanical design is my biggest passion, along with the physics and math that explain why a design works.",
   photo: {
     src: "/gallery/first-worlds.jpg",
     alt: "As a kid at the FIRST Championship, holding a Lego trophy",
@@ -66,7 +66,7 @@ export const interests = {
     {
       no: "01",
       title: "Humanoids",
-      body: "Humanoid and legged robots are what got me into this. Atlas and Optimus are the clearest examples of the problem I find most interesting: machines that work in spaces built for people.",
+      body: "The human body is the most impressive machine I know, which is probably why humanoids are my favorite robots. Every step is a balance problem, and one hand has more joints than most robot arms. A robot that moves like us needs mechanism design, control theory, and kinematics all working together, and someday I'd like to help build one.",
       shot: {
         src: "/gallery/optimus.jpg",
         alt: "Standing next to a Tesla Optimus humanoid robot",
@@ -77,7 +77,7 @@ export const interests = {
     {
       no: "02",
       title: "Mechanism design",
-      body: "Gear ratios, belt tension, tolerances. Most of my time goes into CAD, and then into actually making the parts.",
+      body: "Most of my time goes into CAD. I love the challenge of fitting a mechanism into a tight space and picking a gear ratio that balances speed and torque. There's rarely one right answer, and figuring out the best one is what I enjoy most.",
       shot: {
         src: "/gallery/robot-topdown.jpg",
         alt: "Overhead view of a competition robot chassis",
@@ -88,7 +88,7 @@ export const interests = {
     {
       no: "03",
       title: "Control theory",
-      body: "PID loops, feedforward, and motion profiles. Getting a lift or an arm to move fast and stop exactly where it should is mostly a math problem.",
+      body: "This is where I get to use the math and physics from school on a real robot. Getting a lift or an arm to move fast and stop exactly where it should takes PID, feedforward, and motion profiling. I like predicting how a system should behave on paper and then seeing if the robot actually does it.",
       shot: {
         src: "/gallery/ftc-robot-tall.jpg",
         alt: "Competition robot with its lift extended",
@@ -99,7 +99,7 @@ export const interests = {
     {
       no: "04",
       title: "Building it",
-      body: "I'd rather be able to build what I design. Machining, printing, soldering, and wiring are part of the job.",
+      body: "I want to be able to build the things I design. Machining, 3D printing, soldering, and wiring are all part of that. Making a part almost always shows me something I missed in CAD, and then I go back and improve the design.",
       shot: {
         src: "/gallery/shop-ppe.jpg",
         alt: "In safety goggles, respirator, and headlamp in the shop",
@@ -153,7 +153,7 @@ export const work: {
       program: "FIRST Robotics Competition",
       role: "Director and Design Lead",
       current: true,
-      body: "A 125-pound robot on a six-week build season. I represent 2583 as the Technical Director and work on the robot through the season.",
+      body: "A 125-pound robot on a six-week build season. It's the hardest thing I do all year, and the most fun. I represent 2583 as the Technical Director and work on the robot through the season.",
       highlights: [
         "Winner - 2026 FIT District McAllen Event",
         "Impact Award Winner - 2026 FIT District Manor Event",
@@ -188,7 +188,7 @@ export const work: {
       team: "CHAI GPT Robotics",
       program: "FIRST Tech Challenge",
       role: "Captain and Design Lead",
-      body: "A smaller team, so I worked across build, CAD, and autonomous. CHAI GPT won the Inspire Award, the top award in FTC, at both league and state level.",
+      body: "FTC teams are smaller, so I worked on a little of everything, including build, CAD, and autonomous code. That's where I learned how every part of a robot depends on the others. We won the Inspire Award, the top award in FTC, at both league and state level.",
       highlights: [
         "Inspire Award 1st - FIT Central GEMS League Tournament",
         "Inspire Award 1st - Texas State Cup, Mockingbird Division",
@@ -222,7 +222,7 @@ export const work: {
       team: "Drones & autonomy research",
       program: "Outside the season",
       role: "",
-      body: "Outside the competition season I've been working on small autonomous aircraft, including the airframe, onboard compute, and flight software.",
+      body: "Between seasons, I do research on drones. Flying is a different problem from driving, because every gram matters and the controls have to react in milliseconds. I've worked on small autonomous aircraft, including the airframe, onboard compute, and flight software.",
       highlights: ["Custom quadcopter airframe", "Onboard compute & sensing"],
       media: [
         {
@@ -241,7 +241,7 @@ export const work: {
       program: "Internship",
       role: "Product Engineering Intern",
       current: true,
-      body: "Syrma SGS is an electronics design and manufacturing company. As a product engineering intern, I work on circuit boards from schematic to layout.",
+      body: "Syrma SGS designs and manufactures electronics. As a product engineering intern, I work on circuit boards from schematic to layout. Every robot I've built runs on boards like these, and now I get to see how they're designed and made.",
       highlights: ["Schematic capture in KiCad", "PCB layout and 3D review"],
       media: [
         {
@@ -259,7 +259,7 @@ export const personal = {
   index: "04",
   label: "Outside work",
   title: "Outside of *robotics*.",
-  body: "Outside of the shop, I love to explore, travel, and find new questions to solve.",
+  body: "Outside of the shop, I love to explore, travel, and find new questions to solve. Wherever I go, I end up wondering how things were built.",
   gallery: [
     {
       src: "/gallery/chai-munnar.jpg",
@@ -300,7 +300,7 @@ export const personal = {
 export const contact = {
   index: "05",
   label: "Contact",
-  title: "If you're building something, get in *touch*.",
+  title: "Building something? I'd love to *hear* about it.",
 };
 
 /** The current roles, as shown in the hero and the About facts. */
