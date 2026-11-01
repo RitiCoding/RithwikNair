@@ -93,9 +93,9 @@ export default function Preloader({ name }: { name: string }) {
   return (
     <div className={`preloader ${phase === "leave" ? "is-leaving" : ""}`} aria-hidden>
       <div className="preloader-inner shell flex h-full flex-col justify-between py-7">
-        <div className="flex items-start justify-between">
-          <span className="text-[0.95rem] font-medium tracking-[-0.01em]">{name}</span>
-          <span className="t-label">Robotics · Autonomy</span>
+        <div className="flex items-start justify-between gap-6">
+          <span className="shrink-0 text-[0.95rem] font-medium tracking-[-0.01em]">{name}</span>
+          <span className="t-label text-right text-balance">Robotics · Mechanical design</span>
         </div>
         <div className="flex items-end justify-between gap-6">
           <span className="t-label pb-2">Loading</span>

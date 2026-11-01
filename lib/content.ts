@@ -44,7 +44,7 @@ export const about = {
     ratio: 3 / 4,
     caption: "First time qualifying for Worlds.",
   },
-  focus: ["Mechanical design", "Control theory", "ROS & kinematics"],
+  focus: ["Mechanical design", "Control theory", "ROS & Kinematics"],
 };
 
 export const disciplines = [
